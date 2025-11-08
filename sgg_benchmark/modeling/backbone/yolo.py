@@ -94,6 +94,9 @@ class YoloModel(DetectionModel):
 
         results = []
         for i, (pred, idx) in enumerate(zip(preds, indices)):
+            # Define out_img_size for this iteration
+            out_img_size = image_sizes[i]
+            
             if len(pred) == 0:
                 # return a dummy box with size of all image
                 boxes = torch.tensor([[0, 0, image_sizes[0][1], image_sizes[0][0]]], device=self.device)
@@ -108,7 +111,7 @@ class YoloModel(DetectionModel):
                 continue
 
             # flip
-            out_img_size = image_sizes[i]
+            # out_img_size = image_sizes[i]  # moved this line above
 
             boxes = pred[:, :4]
             boxes = ops.scale_boxes((self.input_size, self.input_size), boxes, (out_img_size[1], out_img_size[0]))
