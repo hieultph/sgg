@@ -6,8 +6,10 @@ import copy
 
 
 class DatasetCatalog(object):
-    DATA_DIR = "/home/maelicneau/Documents/SGG-Benchmark/"
-    IMG_DIR = "/home/maelicneau/Documents/SGG-Benchmark/datasets/"
+    # DATA_DIR = "/home/maelicneau/Documents/SGG-Benchmark/"
+    # IMG_DIR = "/home/maelicneau/Documents/SGG-Benchmark/datasets/"
+    DATA_DIR = "/workspace/SGG-Benchmark/"
+    IMG_DIR = "/workspace/SGG-Benchmark/datasets/"
     DATASETS = {
         "VG150": {
             "img_dir": IMG_DIR+"VG_100K",
