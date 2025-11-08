@@ -3,7 +3,13 @@ from torch.autograd import Function
 from torch.autograd.function import once_differentiable
 from torch.nn.modules.utils import _pair
 
-from sgg_benchmark import _C
+try:
+    from sgg_benchmark import _C
+    _C_AVAILABLE = True
+except ImportError:
+    _C = None
+    _C_AVAILABLE = False
+    print("Warning: CUDA extensions not available. Using fallback implementations.")
 
 
 class DeformConvFunction(Function):
@@ -41,8 +47,10 @@ class DeformConvFunction(Function):
         ctx.bufs_ = [input.new_empty(0), input.new_empty(0)]  # columns, ones
 
         if not input.is_cuda:
-            raise NotImplementedError
+            raise NotImplementedError("CPU deformable convolution not implemented")
         else:
+            if not _C_AVAILABLE:
+                raise NotImplementedError("CUDA extensions not available - deformable convolution requires compiled CUDA extensions")
             cur_im2col_step = min(ctx.im2col_step, input.shape[0])
             assert (input.shape[0] %
                     cur_im2col_step) == 0, 'im2col step must divide batchsize'
@@ -75,8 +83,10 @@ class DeformConvFunction(Function):
         grad_input = grad_offset = grad_weight = None
 
         if not grad_output.is_cuda:
-            raise NotImplementedError
+            raise NotImplementedError("CPU deformable convolution not implemented")
         else:
+            if not _C_AVAILABLE:
+                raise NotImplementedError("CUDA extensions not available - deformable convolution requires compiled CUDA extensions")
             cur_im2col_step = min(ctx.im2col_step, input.shape[0])
             assert (input.shape[0] %
                     cur_im2col_step) == 0, 'im2col step must divide batchsize'
@@ -107,6 +117,8 @@ class DeformConvFunction(Function):
 
             if ctx.needs_input_grad[2]:
                 grad_weight = torch.zeros_like(weight)
+                if not _C_AVAILABLE:
+                    raise NotImplementedError("CUDA extensions not available - deformable convolution requires compiled CUDA extensions")
                 _C.deform_conv_backward_parameters(
                     input,
                     offset,
@@ -172,7 +184,9 @@ class ModulatedDeformConvFunction(Function):
         if not ctx.with_bias:
             bias = input.new_empty(1)  # fake tensor
         if not input.is_cuda:
-            raise NotImplementedError
+            raise NotImplementedError("CPU modulated deformable convolution not implemented")
+        if not _C_AVAILABLE:
+            raise NotImplementedError("CUDA extensions not available - modulated deformable convolution requires compiled CUDA extensions")
         if weight.requires_grad or mask.requires_grad or offset.requires_grad \
                 or input.requires_grad:
             ctx.save_for_backward(input, offset, mask, weight, bias)
@@ -206,7 +220,9 @@ class ModulatedDeformConvFunction(Function):
     @once_differentiable
     def backward(ctx, grad_output):
         if not grad_output.is_cuda:
-            raise NotImplementedError
+            raise NotImplementedError("CPU modulated deformable convolution not implemented")
+        if not _C_AVAILABLE:
+            raise NotImplementedError("CUDA extensions not available - modulated deformable convolution requires compiled CUDA extensions")
         input, offset, mask, weight, bias = ctx.saved_tensors
         grad_input = torch.zeros_like(input)
         grad_offset = torch.zeros_like(offset)

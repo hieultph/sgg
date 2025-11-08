@@ -2,7 +2,12 @@ import torch
 from torch.autograd import Function
 from torch.autograd.function import once_differentiable
 
-from sgg_benchmark import _C
+try:
+    from sgg_benchmark import _C
+    _C_AVAILABLE = True
+except ImportError:
+    _C = None
+    _C_AVAILABLE = False
 
 
 class DeformRoIPoolingFunction(Function):
@@ -33,7 +38,10 @@ class DeformRoIPoolingFunction(Function):
 
         assert 0.0 <= ctx.trans_std <= 1.0
         if not data.is_cuda:
-            raise NotImplementedError
+            raise NotImplementedError("CPU deform RoI pooling not implemented")
+
+        if not _C_AVAILABLE:
+            raise NotImplementedError("CUDA extensions not available - deform RoI pooling requires compiled CUDA extensions")
 
         n = rois.shape[0]
         output = data.new_empty(n, out_channels, out_size, out_size)
@@ -64,7 +72,10 @@ class DeformRoIPoolingFunction(Function):
     @once_differentiable
     def backward(ctx, grad_output):
         if not grad_output.is_cuda:
-            raise NotImplementedError
+            raise NotImplementedError("CPU deform RoI pooling not implemented")
+
+        if not _C_AVAILABLE:
+            raise NotImplementedError("CUDA extensions not available - deform RoI pooling requires compiled CUDA extensions")
 
         data, rois, offset = ctx.saved_tensors
         output_count = ctx.output_count
