@@ -51,3 +51,6 @@ analysis/
 
 # add the datasets/VG150/zeroshot_triplet.pytorch file as exception
 !/datasets/VG150/zeroshot_triplet.pytorch
+
+# Avoid checkpoint files
+/my_script/runs/*

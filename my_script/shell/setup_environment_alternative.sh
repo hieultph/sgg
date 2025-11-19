@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# Exit immediately on error
+set -e
+
+# Download and install Miniconda
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+eval "$($HOME/miniconda3/bin/conda shell.bash hook)"
+conda init bash
+source ~/.bashrc
+
 # Alternative setup script for SGG-Benchmark Environment with PyTorch fix
 echo "Setting up SGG-Benchmark environment (alternative method)..."
 
