@@ -173,14 +173,16 @@ class VGDataset(torch.utils.data.Dataset):
         if os.path.isdir(path):
             # check if there is images in the directory
             files = os.listdir(path)
-            img = ['.jpg', '.jpeg', '.png']
+            img_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff']
             # check if there is images in the directory
-            if not any([f.endswith(tuple(img)) for f in files]):
+            if not any([f.lower().endswith(tuple(img_extensions)) for f in files]):
                 return
             for file_name in os.listdir(path):
-                self.custom_files.append(os.path.join(path, file_name))
-                img = Image.open(os.path.join(path, file_name)).convert("RGB")
-                self.img_info.append({'width':int(img.width), 'height':int(img.height), 'image_id':str(file_name.split('.')[0])})
+                # Only process image files
+                if file_name.lower().endswith(tuple(img_extensions)):
+                    self.custom_files.append(os.path.join(path, file_name))
+                    img = Image.open(os.path.join(path, file_name)).convert("RGB")
+                    self.img_info.append({'width':int(img.width), 'height':int(img.height), 'image_id':str(file_name.split('.')[0])})
         # Expecting a list of paths in a json file
         if os.path.isfile(path):
             file_list = json.load(open(path))
