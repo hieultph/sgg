@@ -21,17 +21,62 @@ def main(args):
     model = SGG_Model(config_path, weights, dcs=dcs, tracking=tracking, rel_conf=rel_conf, box_conf=box_conf)
 
     # Open the webcam
-    cap = cv2.VideoCapture(-1)
+    cap = cv2.VideoCapture(0)
+    
+    # Check if camera is available
+    if not cap.isOpened():
+        print("❌ No camera found! Using sample image instead...")
+        # Use a sample image from the dataset
+        sample_images = [
+            "../datasets/VG_100K/1.jpg",
+            "../demo_sgg_test/demo_1.jpg",
+            "../sample_test_images/1.jpg",
+            "./sample_image.jpg"
+        ]
+        
+        sample_path = None
+        for img_path in sample_images:
+            if os.path.exists(img_path):
+                sample_path = img_path
+                break
+        
+        if sample_path:
+            print(f"📸 Using sample image: {sample_path}")
+            frame = cv2.imread(sample_path)
+            if frame is not None:
+                img, graph = model.predict(frame, visu_type=visu_type)
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                if visu_type == 'image':
+                    graph = cv2.cvtColor(graph, cv2.COLOR_BGR2RGB)
+                    cv2.imshow('Graph', graph)
+                cv2.imshow('SGG Detection Result', img)
+                print("Press any key to close...")
+                cv2.waitKey(0)
+                cv2.destroyAllWindows()
+                return
+        
+        print("❌ No sample images found either!")
+        print("Available sample image locations:")
+        for img_path in sample_images:
+            exists = "✅" if os.path.exists(img_path) else "❌"
+            print(f"  {exists} {img_path}")
+        return
 
     if save_path is not None:
         save_path = os.path.join(get_path(), save_path)
         video_size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-
         video_out = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'XVID'), 30, video_size)
 
+    print("🎥 Camera opened successfully! Press 'q' to quit, 'p' to pause")
+    
     while True:
         # Capture frame-by-frame
         ret, frame = cap.read()
+        
+        # Check if frame is valid
+        if not ret or frame is None:
+            print("❌ Failed to capture frame from camera")
+            break
 
         # Make prediction
         img, graph = model.predict(frame, visu_type=visu_type)
