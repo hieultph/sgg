@@ -75,6 +75,7 @@ class YoloModel(DetectionModel):
 
     def postprocess(self, preds, image_sizes):
         """Post-processes predictions and returns a list of Results objects."""
+        results = []
 
         if self.end2end:
             preds = preds[0]
@@ -92,8 +93,7 @@ class YoloModel(DetectionModel):
                 max_det=self.max_det,
             )
 
-        results = []
-        for i, (pred, idx) in enumerate(zip(preds, indices)):
+        for i, pred in enumerate(preds):
             # Define out_img_size for this iteration
             out_img_size = image_sizes[i]
             
@@ -110,9 +110,7 @@ class YoloModel(DetectionModel):
                 results.append(boxlist)
                 continue
 
-            # flip
-            # out_img_size = image_sizes[i]  # moved this line above
-
+            # Process valid predictions
             boxes = pred[:, :4]
             boxes = ops.scale_boxes((self.input_size, self.input_size), boxes, (out_img_size[1], out_img_size[0]))
 
@@ -125,9 +123,13 @@ class YoloModel(DetectionModel):
             labels += 1
             boxlist.add_field("pred_scores", scores)
             boxlist.add_field("labels", labels)
+            
+            # Create feature indices for each detection
+            idx = torch.tensor([i] * len(pred), device=self.device)
             boxlist.add_field("feat_idx", idx.long())
 
             results.append(boxlist)
+        
         return results
 
     @staticmethod
