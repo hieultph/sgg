@@ -474,12 +474,13 @@ def main():
 
     if not args.skip_test:
         checkpointer = DetectronCheckpointer(cfg, model)
-        last_check = best_checkpoint+'.pth'
-        if last_check != "":
+        if best_checkpoint is not None:
+            last_check = best_checkpoint + '.pth'
             logger.info("Loading best checkpoint from {}...".format(last_check))
             _ = checkpointer.load(last_check)
         else:
-            _ = checkpointer.load(last_check)
+            # No best checkpoint was saved, use the latest model state
+            logger.info("No best checkpoint available, using current model state for testing")
         run_test(cfg, model, args.distributed, logger)
 
     
