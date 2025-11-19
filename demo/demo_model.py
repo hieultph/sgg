@@ -21,7 +21,7 @@ from networkx.drawing.nx_agraph import to_agraph
 class SGG_Model(object):
     def __init__(self, config, weights, dcs=100, tracking=False, rel_conf=0.1, box_conf=0.5, show_fps=True) -> None:
         cfg.merge_from_file(config)
-        cfg.TEST.CUSTUM_EVAL = True
+        cfg.TEST.CUSTUM_EVAL = False  # Disable custom evaluation for webcam demo
         cfg.OUTPUT_DIR = os.path.dirname(config)
 
         # to force SGDET mode /!\ careful though, if the model hasn't been trained in sgdet mode, this will break the code
@@ -324,6 +324,21 @@ class SGG_Model(object):
         cv2.ellipse(img, (top_left[0] + radius, bottom_right[1] - radius), (radius, radius), 90, 0, 90, color, thickness)
 
     def visualize_graph(self, rels, bboxes, color='blue'):
+        rels = np.asarray(rels)
+
+        if rels.size == 0 or rels.ndim < 2 or rels.shape[1] < 3:
+            placeholder = np.ones((200, 400, 3), dtype=np.uint8) * 255
+            cv2.putText(
+                placeholder,
+                'No relations detected',
+                (10, 110),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (0, 0, 0),
+                2,
+            )
+            return placeholder
+
         bbox_labels = [self.stats['obj_classes'][int(b[5])] for b in bboxes]
         G = nx.MultiDiGraph()
         for i, r_label in enumerate(rels[:, 2]):
