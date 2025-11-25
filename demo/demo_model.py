@@ -20,7 +20,10 @@ from networkx.drawing.nx_agraph import to_agraph
 
 class SGG_Model(object):
     def __init__(self, config, weights, dcs=100, tracking=False, rel_conf=0.1, box_conf=0.5, show_fps=True) -> None:
+        # Allow new keys before merging
+        cfg.set_new_allowed(True)
         cfg.merge_from_file(config)
+        cfg.set_new_allowed(False)  # Optional: disable after merging
         cfg.TEST.CUSTUM_EVAL = False  # Disable custom evaluation for webcam demo
         cfg.OUTPUT_DIR = os.path.dirname(config)
 
