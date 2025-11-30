@@ -5,6 +5,9 @@ from demo_model import SGG_Model
 import os
 from sgg_benchmark.utils.miscellaneous import get_path
 
+WINDOWS_IP = "192.168.56.1"  # Thay bằng IP thực tế của bạn
+stream_url = f"http://{WINDOWS_IP}:8601/stream"
+
 # main
 def main(args):
     config_path = args.config
@@ -21,7 +24,7 @@ def main(args):
     model = SGG_Model(config_path, weights, dcs=dcs, tracking=tracking, rel_conf=rel_conf, box_conf=box_conf)
 
     # Open the webcam
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(stream_url)
 
     if save_path is not None:
         save_path = os.path.join(get_path(), save_path)
@@ -30,6 +33,8 @@ def main(args):
         video_out = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'XVID'), 30, video_size)
 
     while True:
+        print("Is opened:", cap.isOpened())
+
         # Capture frame-by-frame
         ret, frame = cap.read()
 
