@@ -80,6 +80,14 @@ if 'predicate_classes' in dataset:
     
     print(f"[5] ✓ Saved clean list to: {output_file_list}")
     
+    # Save as TXT file (one predicate per line)
+    output_file_txt = "psg_predicates_list.txt"
+    with open(output_file_txt, 'w') as f:
+        for pred in ind_to_predicates:
+            f.write(f"{pred}\n")
+    
+    print(f"[6] ✓ Saved TXT file to: {output_file_txt}")
+    
     # Print summary
     print("\n" + "=" * 80)
     print("SUMMARY")
@@ -94,7 +102,7 @@ if 'predicate_classes' in dataset:
     # Check config file
     config_file = "checkpoints/react_PSG/config.yml"
     if os.path.exists(config_file):
-        print(f"\n[6] Verifying with config file: {config_file}")
+        print(f"\n[7] Verifying with config file: {config_file}")
         import yaml
         with open(config_file, 'r') as f:
             cfg = yaml.safe_load(f)
@@ -111,9 +119,10 @@ if 'predicate_classes' in dataset:
     print("\n" + "=" * 80)
     print("✓ EXTRACTION COMPLETE!")
     print("=" * 80)
-    print(f"\nYou can now use these predicate labels in your demo:")
-    print(f"  - {output_file}")
-    print(f"  - {output_file_list}")
+    print("\nYou can now use these predicate labels in your demo:")
+    print(f"  - {output_file} (JSON with metadata)")
+    print(f"  - {output_file_list} (JSON list)")
+    print(f"  - {output_file_txt} (TXT file, one per line)")
     
 else:
     print("❌ 'predicate_classes' not found in dataset")
