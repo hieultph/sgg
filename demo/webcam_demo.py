@@ -6,7 +6,7 @@ import os
 from sgg_benchmark.utils.miscellaneous import get_path
 
 WINDOWS_IP = "192.168.56.1"  # Thay bằng IP thực tế của bạn
-stream_url = f"http://{WINDOWS_IP}:8601/stream"
+stream_url = f"http://{WINDOWS_IP}:6001/stream"
 
 # main
 def main(args):
