@@ -39,21 +39,33 @@ def load_dataset():
     print("Loading PSG dataset...")
     
     # Load annotations
-    with open('datasets/psg/psg/psg_train_val.json', 'r') as f:
+    with open('../../datasets/psg/psg/psg_train_val.json', 'r') as f:
+    # with open('../../tools/SGG-Annotate/my_custom_images/custom_psg_detections.json', 'r') as f:
         DATASET = json.load(f)
     
-    # Load predicates
-    with open('psg_predicates_list.json', 'r') as f:
-        PREDICATES = json.load(f)
+    # Load predicates directly from dataset
+    PREDICATES = DATASET['predicate_classes']
     
-    # Load object classes
-    with open('checkpoints/react_PSG/labels.json', 'r') as f:
-        OBJECTS = json.load(f)
+    # Load object classes: thing_classes + stuff_classes
+    # thing_classes are COCO objects (person, car, etc.)
+    # stuff_classes are background/region classes (wall, sky, etc.)
+    thing_classes = DATASET['thing_classes']
+    stuff_classes = DATASET.get('stuff_classes', [])
     
-    IMAGE_DIR = 'datasets/psg/coco/coco/'  # Contains train2017/, val2017/ folders
+    # Combine: thing classes first, then stuff classes
+    # This matches how category_id is indexed in annotations
+    OBJECTS = thing_classes + stuff_classes
+    
+    # Convert to dict for easy lookup: {category_id: class_name}
+    OBJECTS = {i: name for i, name in enumerate(OBJECTS)}
+    
+    IMAGE_DIR = '../../datasets/psg/coco/coco/'  # Contains train2017/, val2017/ folders
+    # IMAGE_DIR = '../../tools/SGG-Annotate/my_custom_images/images/'  # Contains train2017/, val2017/ folders
     
     print(f"✓ Loaded {len(DATASET['data'])} images")
     print(f"✓ {len(PREDICATES)} predicates, {len(OBJECTS)} object classes")
+    print(f"  - thing_classes: {len(thing_classes)}")
+    print(f"  - stuff_classes: {len(stuff_classes)}")
 
 def draw_scene_graph_on_image(image_entry, show_bbox=True, show_relations=True):
     """Draw bounding boxes and relations on image"""
@@ -75,37 +87,48 @@ def draw_scene_graph_on_image(image_entry, show_bbox=True, show_relations=True):
     if not show_bbox and not show_relations:
         return img
     
-    # Load segments (objects)
+    # Load segments (objects) - contains category_id for each object
     segments = image_entry.get('segments_info', [])
+    annotations = image_entry.get('annotations', [])
     
     # Draw bounding boxes
-    if show_bbox and 'annotations' in image_entry:
-        for idx, ann in enumerate(image_entry['annotations']):
+    if show_bbox and annotations:
+        for idx, ann in enumerate(annotations):
             if 'bbox' not in ann:
                 continue
             
-            x, y, w, h = ann['bbox']
-            x, y, w, h = int(x), int(y), int(w), int(h)
+            # Bbox format: [x1, y1, x2, y2] (XYXY format, bbox_mode=0)
+            # Not [x, y, width, height]!
+            x1, y1, x2, y2 = ann['bbox']
+            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
             
-            # Get object class
-            cat_id = segments[idx]['category_id'] if idx < len(segments) else 0
+            # Convert to x, y, w, h for drawing
+            x, y, w, h = x1, y1, x2 - x1, y2 - y1
+            
+            # Get object class from annotations (not segments_info)
+            # category_id in annotations corresponds to thing_classes + stuff_classes index
+            cat_id = ann.get('category_id', 0)
             obj_name = OBJECTS.get(cat_id, f"obj_{cat_id}")
             
+            # Generate consistent color per object index
+            np.random.seed(idx * 42)  # Consistent color
+            color = tuple(np.random.randint(100, 255, 3).tolist())
+            
             # Draw bbox
-            color = tuple(np.random.randint(0, 255, 3).tolist())
             cv2.rectangle(img, (x, y), (x + w, y + h), color, 2)
             
-            # Draw label
+            # Draw label with background
             label = f"[{idx}] {obj_name}"
+            (label_w, label_h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
+            cv2.rectangle(img, (x, y - label_h - 5), (x + label_w, y), color, -1)
             cv2.putText(img, label, (x, y - 5), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
     
     # Draw relations as lines
     if show_relations:
         relations = image_entry.get('relations', [])
-        annotations = image_entry.get('annotations', [])
         
-        for sub_idx, obj_idx, pred_id in relations:
+        for rel_idx, (sub_idx, obj_idx, pred_id) in enumerate(relations):
             if sub_idx >= len(annotations) or obj_idx >= len(annotations):
                 continue
             
@@ -116,21 +139,32 @@ def draw_scene_graph_on_image(image_entry, show_bbox=True, show_relations=True):
             if not sub_bbox or not obj_bbox:
                 continue
             
-            sub_center = (int(sub_bbox[0] + sub_bbox[2]/2), 
-                         int(sub_bbox[1] + sub_bbox[3]/2))
-            obj_center = (int(obj_bbox[0] + obj_bbox[2]/2), 
-                         int(obj_bbox[1] + obj_bbox[3]/2))
+            # Centers: bbox is [x1, y1, x2, y2] format
+            sub_center = (int((sub_bbox[0] + sub_bbox[2])/2), 
+                         int((sub_bbox[1] + sub_bbox[3])/2))
+            obj_center = (int((obj_bbox[0] + obj_bbox[2])/2), 
+                         int((obj_bbox[1] + obj_bbox[3])/2))
+            
+            # Generate consistent color per relation
+            np.random.seed(rel_idx * 123)
+            arrow_color = tuple(np.random.randint(50, 255, 3).tolist())
             
             # Draw arrow
-            cv2.arrowedLine(img, sub_center, obj_center, (0, 255, 0), 2, tipLength=0.3)
+            cv2.arrowedLine(img, sub_center, obj_center, arrow_color, 2, tipLength=0.2)
             
-            # Draw predicate label
+            # Draw predicate label at midpoint
             mid_x = (sub_center[0] + obj_center[0]) // 2
             mid_y = (sub_center[1] + obj_center[1]) // 2
             
+            # pred_id is 0-indexed in PSG dataset
             pred_name = PREDICATES[pred_id] if pred_id < len(PREDICATES) else f"pred_{pred_id}"
+            
+            # Draw label with background for readability
+            (text_w, text_h), _ = cv2.getTextSize(pred_name, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
+            cv2.rectangle(img, (mid_x - 2, mid_y - text_h - 2), 
+                         (mid_x + text_w + 2, mid_y + 2), (0, 0, 0), -1)
             cv2.putText(img, pred_name, (mid_x, mid_y), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 0), 1)
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
     
     return img
 
@@ -158,8 +192,8 @@ def get_stats():
         for sub, obj, pred in entry.get('relations', []):
             pred_counts[pred] = pred_counts.get(pred, 0) + 1
         
-        for seg in entry.get('segments_info', []):
-            cat_id = seg['category_id']
+        for ann in entry.get('annotations', []):
+            cat_id = ann.get('category_id', 0)
             obj_counts[cat_id] = obj_counts.get(cat_id, 0) + 1
     
     return jsonify({
@@ -195,8 +229,8 @@ def get_images():
         # Check object filter
         if obj_filter and obj_filter != 'all':
             obj_id = int(obj_filter)
-            has_obj = any(seg['category_id'] == obj_id 
-                         for seg in entry.get('segments_info', []))
+            has_obj = any(ann.get('category_id') == obj_id 
+                         for ann in entry.get('annotations', []))
             if not has_obj:
                 continue
         
@@ -223,7 +257,7 @@ def get_images():
             'file_name': entry['file_name'],
             'width': entry['width'],
             'height': entry['height'],
-            'num_objects': len(entry.get('segments_info', [])),
+            'num_objects': len(entry.get('annotations', [])),
             'num_relations': len(entry.get('relations', []))
         })
     
@@ -249,11 +283,12 @@ def get_image_detail(image_id):
     
     # Prepare relations with labels
     relations_data = []
-    segments = entry.get('segments_info', [])
+    annotations = entry.get('annotations', [])
     
     for sub_idx, obj_idx, pred_id in entry.get('relations', []):
-        sub_cat = segments[sub_idx]['category_id'] if sub_idx < len(segments) else 0
-        obj_cat = segments[obj_idx]['category_id'] if obj_idx < len(segments) else 0
+        # Get category_id from annotations (not segments_info)
+        sub_cat = annotations[sub_idx]['category_id'] if sub_idx < len(annotations) else 0
+        obj_cat = annotations[obj_idx]['category_id'] if obj_idx < len(annotations) else 0
         
         relations_data.append({
             'subject_idx': sub_idx,
@@ -264,15 +299,20 @@ def get_image_detail(image_id):
             'predicate_name': PREDICATES[pred_id] if pred_id < len(PREDICATES) else f"pred_{pred_id}"
         })
     
-    # Prepare objects
+    # Prepare objects from annotations (not segments_info)
     objects_data = []
-    for idx, seg in enumerate(segments):
-        cat_id = seg['category_id']
+    for idx, ann in enumerate(annotations):
+        cat_id = ann.get('category_id', 0)
+        bbox = ann.get('bbox', [0, 0, 0, 0])
+        # bbox is [x1, y1, x2, y2], so area = (x2-x1) * (y2-y1)
+        area = (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]) if len(bbox) == 4 else 0
+        
         objects_data.append({
             'index': idx,
             'category_id': cat_id,
             'category_name': OBJECTS.get(cat_id, f"obj_{cat_id}"),
-            'area': seg.get('area', 0)
+            'bbox': bbox,
+            'area': area
         })
     
     return jsonify({
