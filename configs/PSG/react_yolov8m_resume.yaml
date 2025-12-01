@@ -1,0 +1,39 @@
+_BASE_: "react_yolov8m.yaml"
+
+# Resume training from checkpoint: checkpoints/react_PSG/best_model_epoch_11.pth
+# Instructions:
+#   1. Copy checkpoint: cp checkpoints/react_PSG/best_model_epoch_11.pth output/react_PSG_resume/model_final.pth
+#   2. Run: CUDA_VISIBLE_DEVICES=0 python tools/relation_train_net.py --config-file configs/PSG/react_yolov8m_resume.yaml
+
+SOLVER:
+  MAX_EPOCH: 30                      # Train from epoch 11 → 30 (19 more epochs)
+  BASE_LR: 0.001                     # Reduced LR for fine-tuning (original: 0.01)
+  WARMUP_FACTOR: 1.0                 # No warmup needed when resuming
+  WEIGHT_DECAY: 0.0001
+  MOMENTUM: 0.9
+  GRAD_NORM_CLIP: 5.0
+  
+  # Learning rate schedule
+  STEPS: (5000, 10000)               # Adjust based on remaining training
+  MAX_ITER: 50000                    # Total iterations
+  VAL_PERIOD: 1000                   # Validate every 1000 iterations
+  CHECKPOINT_PERIOD: 1000            # Save checkpoint every 1000 iterations
+  PRINT_GRAD_FREQ: 2000
+  
+  SCHEDULE:
+    TYPE: "WarmupReduceLROnPlateau"
+    PATIENCE: 2
+    THRESHOLD: 0.001
+    COOLDOWN: 0
+    FACTOR: 0.1
+    MAX_DECAY_STEP: 3
+  
+  UPDATE_SCHEDULE_DURING_LOAD: True  # Important! Update scheduler state from checkpoint
+
+OUTPUT_DIR: './output/react_PSG_resume'
+
+# Optional: Track metrics you want to optimize
+METRIC_TO_TRACK: "mR"  # Options: mR, R, zR, ng-zR, ng-R, ng-mR, topA
+
+# Model config remains the same (inherited from base config)
+# Backbone is frozen by default (FREEZE: True)
