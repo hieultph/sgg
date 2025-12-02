@@ -54,3 +54,6 @@ analysis/
 
 # Avoid checkpoint files
 /my_script/runs/*
+
+# Label tool
+tools/SGG-Annotate/

@@ -36,3 +36,26 @@ Not changes
 - sgg_benchmark/layers/**init**.py
 - sgg_benchmark\layers\dcn\deform_conv_func.py
 -
+
+
+# MAI
+============================
+
+export PYTHONPATH="/mnt/h/gdrive/Takeout/Drive/School/4 Fourth year/BCTN/code/sgg-feedback/sgg:$PYTHONPATH"
+
+python demo/webcam_demo.py --config checkpoints/react_PSG/config.yml --weights checkpoints/react_PSG/best_model_epoch_11.pth --dcs 42 --save_path ./output.avi
+
+gst-launch-1.0 mfvideosrc ! videoconvert ! x264enc tune=zerolatency bitrate=2000 speed-preset=superfast ! rtph264pay ! udpsink host=127.0.0.1 port=8090
+
+
+gst-launch-1.0 mfvideosrc ! videoconvert ! x264enc tune=zerolatency speed-preset=superfast bitrate=2000 ! rtph264pay config-interval=1 name=pay0 pt=96 ! gdppay ! tcpserversink host=0.0.0.0 port=8554
+
+
+
+gst-launch-1.0 mfvideosrc ! videoconvert ! x264enc tune=zerolatency ! rtph264pay config-interval=1 pt=96 ! tcpserversink host=127.0.0.1 port=8554
+
+python convert_psg_to_coco.py --input ../../datasets/psg/psg/psg_train_val.json --output psg_train_val_coco_editable.json
+
+python main_coco.py --output name_of_output_file.json
+
+python visualize_dataset_webapp.py
