@@ -20,8 +20,8 @@ class DatasetCatalog(object):
             "informative_file": "", #DATA_DIR+"datasets/informative_sg.json",
         },
         "PSG": {
-            "img_dir": "./datasets/COCO/",
-            "ann_file": DATA_DIR+"datasets/psg/psg_train_val.json",
+            "img_dir": "./datasets/psg/coco/coco",
+            "ann_file": DATA_DIR+"datasets/psg/psg/psg_train_val.json",
             "informative_file":  "", #DATA_DIR+"datasets/informative_sg.json",
         },
         "VrR-VG_filtered_with_attribute": {
