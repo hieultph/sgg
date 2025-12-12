@@ -8,8 +8,10 @@ import copy
 class DatasetCatalog(object):
     # DATA_DIR = "/home/maelicneau/Documents/SGG-Benchmark/"
     # IMG_DIR = "/home/maelicneau/Documents/SGG-Benchmark/datasets/"
-    DATA_DIR = "/workspace/SGG-Benchmark/"
-    IMG_DIR = "/workspace/SGG-Benchmark/datasets/"
+    # DATA_DIR = "/workspace/SGG-Benchmark/"
+    # IMG_DIR = "/workspace/SGG-Benchmark/datasets/"
+    DATA_DIR = "./"
+    IMG_DIR = "./datasets/"
     DATASETS = {
         "VG150": {
             "img_dir": IMG_DIR+"VG_100K",
@@ -23,6 +25,12 @@ class DatasetCatalog(object):
             "img_dir": "./datasets/psg/coco/coco",
             "ann_file": DATA_DIR+"datasets/psg/psg/psg_train_val.json",
             "informative_file":  "", #DATA_DIR+"datasets/informative_sg.json",
+        },
+        "custom": {
+            "img_dir": "./datasets/custom",
+            "ann_file": "./datasets/custom/custom_psg_detections.json",
+            "informative_file": "",
+
         },
         "VrR-VG_filtered_with_attribute": {
             "img_dir": IMG_DIR+"VG_100K",
@@ -87,7 +95,7 @@ class DatasetCatalog(object):
                 factory="VGDataset",
                 args=args,
             )
-        elif "PSG" in name:
+        elif "PSG" in name or "custom" in name:
             p = name.rfind("_")
             name, split = name[:p], name[p+1:]
             assert name in DatasetCatalog.DATASETS and split in {'train', 'val', 'test'}
